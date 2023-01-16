@@ -1,0 +1,183 @@
+---
+title: "CBB Analysis"
+author: "John Hankinson"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, Read in data}
+library(tidyverse)
+cbb = read_csv("cbb.csv")
+head(cbb)
+```
+
+```{r, Clean data}
+cbb_filtered = select(cbb, -c('WAB', 'SEED'))
+
+cbb_filtered$WPCT = cbb_filtered$W / cbb_filtered$G
+cbb_filtered = select(cbb_filtered, -c('G', 'W'))
+
+p5 = c('ACC', 'SEC', 'B10', 'B12', 'P12')
+cbb_filtered$P5 = as.numeric(cbb_filtered$CONF %in% p5)
+
+cbb_filtered$POSTSEASON = as.numeric(!is.na(cbb_filtered$POSTSEASON))
+
+cbb_filtered = unite(cbb_filtered, 'TEAMYEAR', c('TEAM', 'YEAR'), remove=TRUE)
+```
+
+```{r, Summary statistics}
+length(unique(cbb$TEAM))
+summary(cbb_filtered)
+```
+
+```{r}
+ggplot(cbb, aes(x=ADJ_T)) +
+  geom_histogram(color='black', fill='white') + 
+  geom_vline(aes(xintercept=mean(ADJ_T)), color='red', size=1) + 
+  xlab('Adjusted tempo, possessions per 40 minutes') + 
+  labs(title='Adjusted tempo 2013-2019')
+```
+
+```{r}
+ggplot(cbb, aes(x=YEAR, y=ADJ_T)) + 
+  geom_boxplot(aes(group=cbb$YEAR)) + 
+  xlab('Year') + 
+  ylab('Adjusted tempo, possessions per 40 min') + 
+  labs(title='Average Tempo by Year')
+```
+
+```{r}
+cbb_reg = lm(WPCT ~ ., data = select(cbb_filtered, -c('TEAMYEAR', 'CONF', 'POSTSEASON')))
+summary(cbb_reg)
+```
+
+```{r, Correlation matrix vs Adjusted tempo}
+cor(cbb_filtered[,3:21])[,16]
+```
+
+```{r, Adjusted tempo vs Win percentage}
+summary(lm(WPCT~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered%>%
+  ggplot(aes(x=ADJ_T, y=WPCT)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted tempo') +
+  ylab('Win Percentage') + 
+  labs(title='Adjusted Tempo vs Win Percentage, All D1 Teams')
+
+cbb_p5 = cbb_filtered[which(cbb_filtered$P5 == 1),1:20]
+
+cbb_p5%>%
+  ggplot(aes(x=ADJ_T, y=WPCT)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted tempo') +
+  ylab('Win Percentage') + 
+  labs(title='Adjusted Tempo vs Win Percentage, Power 5 Teams')
+```
+
+```{r, Adjusted tempo vs Adjusted offensive efficiency}
+summary(lm(ADJOE~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=ADJOE)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Adjusted Offensive Efficiency') + 
+  labs(title='Adjusted Tempo vs Offensive Efficiency')
+```
+
+
+```{r, Adjusted tempo vs Adjusted defensive efficiency}
+summary(lm(ADJDE~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=ADJDE)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Adjusted Defensive Efficiency') + 
+  labs(title='Adjusted Tempo vs Defensive Efficiency')
+```
+
+```{r, Adjusted tempo vs Turnover rate}
+summary(lm(TOR~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=TOR)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Turnover Rate') + 
+  labs(title='Adjusted Tempo vs Turnover Rate')
+```
+
+```{r, Adjusted tempo vs Steal rate}
+summary(lm(TORD~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=TORD)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Steal Rate') + 
+  labs(title='Adjusted Tempo vs Steal Rate')
+```
+
+```{r, Adjusted tempo vs Effective field goal percentage}
+summary(lm(EFG_O~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=EFG_O)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Effective Field Goal Percentage') + 
+  labs(title='Adjusted Tempo vs Effective Field Goal Percentage')
+```
+
+```{r, Adjusted tempo vs Effective field goal percentage allowed}
+summary(lm(EFG_D~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=EFG_D)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Effective Field Goal Percentage Allowed') + 
+  labs(title='Adjusted Tempo vs Effective Field Goal Percentage Allowed')
+```
+
+```{r, Adjusted tempo vs Free throw rate}
+summary(lm(FTR~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=FTR)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Free Throw Rate') + 
+  labs(title='Adjusted Tempo vs Free Throw Rate')
+```
+
+```{r, Adjusted tempo vs Free throw rate allowed}
+summary(lm(FTRD~ADJ_T + BARTHAG, data=cbb_filtered))
+
+cbb_filtered %>%
+  ggplot(aes(x=ADJ_T, y=FTRD)) + 
+  geom_point(alpha=0.5) + 
+  geom_smooth() + 
+  xlab('Adjusted Tempo') + 
+  ylab('Free Throw Rate Allowed') + 
+  labs(title='Adjusted Tempo vs Free Throw Rate Allowed')
+```
+
+
+
+
